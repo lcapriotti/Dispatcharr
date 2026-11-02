@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Stream profiles can reuse another profile's parameters.** A `{streamProfile=Name}` token in a Stream Profile's Parameters inlines that profile's fully expanded parameters when the command is built, so a custom profile only lists what it adds instead of duplicating the whole command line - for example `-hide_banner {streamProfile=FFMpeg}` builds `ffmpeg -hide_banner …` from the locked FFmpeg profile's arguments while the new profile keeps its own command as the executable. References resolve by name (exact first, then case-insensitive like `get_locked`), may nest, keep their quoting, and still substitute their own `{streamUrl}` / `{userAgent}` / `{channelId}` tokens. Unknown, ambiguous, or circular references are rejected when the profile is saved (API 400); if one is already stored, the build logs the reason and starts no process instead of spawning a broken command. A profile another profile references cannot be deleted: the API returns 400 naming the profiles to remove first, and the model refuses the delete on every other path.
+
 ### Changed
 
 - **Docker base image uses a first-party redistributable FFmpeg build.** The base was pinned to `linuxserver/ffmpeg:version-8.1.2-cli` (Ubuntu 24.04, FFmpeg 8.1.2) because `linuxserver/ffmpeg:latest` moved to FFmpeg 9 and NVENC API 13.1, which needs driver 610 and does not run on Pascal / driver 580. It now uses `ghcr.io/dispatcharr/ffmpeg:latest` from [`Dispatcharr/FFmpeg`](https://github.com/Dispatcharr/FFmpeg): Ubuntu 26.04, GPL v3, GnuTLS (not OpenSSL), fdk-aac-stripped (not full Fraunhofer FDK), no `--enable-nonfree`, and NVENC API 13.0 so Pascal / driver 580 still works. IPTV-oriented enables include libx264/libx265, libzvbi, libsrt (GnuTLS), librist, and the usual subtitle/audio stack. Comskip still links distro libav (Ubuntu 26.04 SONAMEs). The entrypoint no longer forces linuxserver's `LIBVA_DRIVERS_PATH` / `LD_LIBRARY_PATH`; libva uses its default driver path, and those variables are only kept if the user sets them.
